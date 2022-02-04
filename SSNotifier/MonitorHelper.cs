@@ -4,9 +4,6 @@ using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TeleSharp.TL;
-using TeleSharp.TL.Messages;
-using TeleSharp.TL.Updates;
 
 namespace SSNotifier
 {
@@ -14,7 +11,8 @@ namespace SSNotifier
   {
     public static void Monitor()
     {
-      int curPts = 0;
+      /*
+      TLState curPts = new TLState() { Pts = 0, Date= (int)((DateTimeOffset)DateTime.Now.Date).ToUnixTimeMilliseconds() };
       System.Console.WriteLine("Begin monitoring...");
 
       int[] chatsToMonitor = ConfigurationManager.AppSettings["monitor chats"].Split().Select(item => int.Parse(item)).ToArray();
@@ -25,22 +23,26 @@ namespace SSNotifier
 
       while (true)
       {
-        int newPts = TLMethodWrapperHelper.GetState();
+        TLState newPts = TLMethodWrapperHelper.GetState();
 
-        if (newPts > curPts)
+        if (newPts.Pts > curPts.Pts)
         {
           System.Console.WriteLine("Update state changed to " + newPts.ToString() + "...");
 
-          TLDifference tLDifference = (TLDifference)TLMethodWrapperHelper.GetDifference(curPts);
+          TLAbsDifference tLAbsDifference = TLMethodWrapperHelper.GetDifference(curPts);
 
-          foreach (TLMessage newMessage in tLDifference.NewMessages)
-          {
-            if (CheckMessageInChatList(newMessage, chatsToMonitor))
+          if (tLAbsDifference.GetType() == typeof(TLDifference)) {
+            TLDifference tLDifference = (TLDifference)tLAbsDifference;
+
+            foreach (TLMessage newMessage in tLDifference.NewMessages)
             {
-              if (usersToMonitor.Contains(newMessage.FromId != null ? (int)newMessage.FromId : -1))
+              if (CheckMessageInChatList(newMessage, chatsToMonitor))
               {
-                TLAbsUpdates tLAbsUpdates = TLMethodWrapperHelper.ForwardMessage(newMessage.Id, forwardPeer);
-                System.Console.WriteLine("forwarded message id=" + newMessage.ToString());
+                if (usersToMonitor.Contains(newMessage.FromId != null ? (int)newMessage.FromId : -1))
+                {
+                  TLAbsUpdates tLAbsUpdates = TLMethodWrapperHelper.ForwardMessage(newMessage.Id, forwardPeer);
+                  System.Console.WriteLine("forwarded message id=" + newMessage.ToString());
+                }
               }
             }
 
@@ -52,10 +54,10 @@ namespace SSNotifier
         }
 
 
-
+      */
       }
     }
-
+  /*
     private static bool CheckMessageInChatList(TLMessage message, int[] chatsToMonitor)
     {
       bool result = false;
@@ -81,24 +83,25 @@ namespace SSNotifier
       TLAbsInputPeer result;
 
       //TLChats tLAbsChats = (TLChats)TLMethodWrapperHelper.GetChats(chatId);
-      TeleSharp.TL.Messages.TLChatFull tLChatFull = TLMethodWrapperHelper.GetFullChat(chatId);
+      //TeleSharp.TL.Messages.TLChatFull tLChatFull = TLMethodWrapperHelper.GetFullChat(chatId);
 
-      if (tLChatFull.Chats.Count > 0)
-      {
-        if (tLChatFull.Chats[0].GetType() == typeof(TLChat))
-          result = new TLInputPeerChat() { ChatId = chatId };
-        else if (tLChatFull.Chats[0].GetType() == typeof(TLChannel))
-          result = new TLInputPeerChannel() { ChannelId = chatId };
-        else
-          throw new Exception("unknown chat type =" + tLChatFull.Chats[0].GetType().ToString());
 
-      }
-      else
-        throw new Exception("Char id=" + chatId.ToString() + " not found");
+    //  if (tLChatFull.Chats.Count > 0)
+    //  {
+    //    if (tLChatFull.Chats[0].GetType() == typeof(TLChat))
+    //      result = new TLInputPeerChat() { ChatId = chatId };
+    //    else if (tLChatFull.Chats[0].GetType() == typeof(TLChannel))
+    //      result = new TLInputPeerChannel() { ChannelId = chatId };
+    //    else
+    //      throw new Exception("unknown chat type =" + tLChatFull.Chats[0].GetType().ToString());
+    //}
+    //  else
+    //    throw new Exception("Char id=" + chatId.ToString() + " not found");
 
+      result = new TLInputPeerChat() { ChatId = chatId };
 
       return result;
     }
-
+*/
   }
-}
+

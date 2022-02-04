@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TeleSharp.TL;
-using TeleSharp.TL.Contacts;
-using TeleSharp.TL.Messages;
+using WTelegram;
+using TL.Methods;
+using TL;
 
 namespace SSNotifier
 {
@@ -18,25 +18,30 @@ namespace SSNotifier
     /// <param name="args"></param>
     public static void GetChatList(string[] args)
     {
-      TLChats chats = TLMethodWrapperHelper.GetAllChats();
+      Messages_Chats chats = TLMethodWrapperHelper.GetAllChats();
 
-      System.Console.WriteLine("Found "+ chats.Chats.Count.ToString() + (args.Length>1?" (filtered) ":"") + " chats: ");
+      System.Console.WriteLine("Found "+ chats.chats.Count.ToString() + (args.Length>1?" (filtered) ":"") + " chats: ");
 
       bool doWrite;
       string chatTite;
-      int chatId;
-      foreach (TLAbsChat chat in chats.Chats)
+      long chatId;
+      foreach (ChatBase chat in chats.chats.Values)
       {
         
-        if (chat.GetType() == typeof(TLChat))
+        if (chat.GetType() == typeof(Chat))
         {
-          chatTite = ((TLChat)chat).Title;
-          chatId = ((TLChat)chat).Id;
+          chatTite = ((Chat)chat).Title;
+          chatId = ((Chat)chat).ID;
         }
-        else if (chat.GetType() == typeof(TLChannel))
+        else if (chat.GetType() == typeof(Channel))
         {
-          chatTite = ((TLChannel)chat).Title;
-          chatId = ((TLChannel)chat).Id;
+          chatTite = ((Channel)chat).Title;
+          chatId = ((Channel)chat).ID;
+        }
+        else if (chat.GetType() == typeof(ChannelForbidden) || chat.GetType() == typeof(ChatForbidden) || chat.GetType() == typeof(ChatEmpty))
+        {
+          chatTite = "unsupported chat type " + chat.GetType().Name;
+          chatId = -1;
         }
         else
         {
@@ -65,21 +70,30 @@ namespace SSNotifier
     /// <param name="args"></param>
     public static void GetContactList(string[] args)
     {
-      TLContacts contacts = (TLContacts)TLMethodWrapperHelper.GetAllContacts();
+      Contacts_Contacts contacts =TLMethodWrapperHelper.GetAllContacts();
 
-      System.Console.WriteLine("Found " + contacts.Contacts.Count.ToString() + (args.Length > 1 ? " (filtered) " : "") + " contacts: ");
+      System.Console.WriteLine("Found " + contacts.contacts.Length.ToString() + (args.Length > 1 ? " (filtered) " : "") + " contacts: ");
 
-      int[] userIds = contacts.Contacts.Select(c => c.UserId).ToArray<int>();
-      TLAbsUser[] users = TLMethodWrapperHelper.GetUsers(userIds);
+      long[] userIds = contacts.contacts.Select(c => c.user_id).ToArray<long>();
+      UserBase[] users = TLMethodWrapperHelper.GetUsers(userIds);
 
       bool doWrite;
       string userName, userFI;
-      int userId;
-      foreach (TLUser user in users)
+      long userId;
+      foreach (UserBase user in users)
       {
-        userFI = user.FirstName + ' ' + user.LastName;
-        userId = user.Id;
-        userName = user.Username;
+        if (user.GetType() == typeof(User))
+        {
+          userFI = ((User)user).first_name + ' ' + ((User)user).last_name;
+          userId = user.ID;
+          userName = ((User)user).username;
+        }
+        else
+        {
+          userFI = "<EmptyUser>";
+          userId = user.ID;
+          userName = "<EmptyUser>";
+        }
 
         doWrite = true;
         if ((args.Length > 1) && (!(userFI+" "+ userName).ToUpper().Contains(args[1].ToString().ToUpper())))
