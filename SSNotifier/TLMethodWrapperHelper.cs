@@ -3,28 +3,28 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TeleSharp.TL;
-using TeleSharp.TL.Messages;
-using TeleSharp.TL.Contacts;
-using TLSharp.Core;
-using TeleSharp.TL.Users;
-using TeleSharp.TL.Updates;
+using WTelegram;
+using TL;
+using TL.Methods;
+
 
 namespace SSNotifier
 {
   class TLMethodWrapperHelper
   {
-    public static TLChats GetAllChats()
+    public static Messages_Chats GetAllChats()
     {
-      var request = new TLRequestGetAllChats() { ExceptIds = new TLVector<int>() };
-      var task = TelegramClientHelper.Client.SendRequestAsync<TLChats>(request);
+      Messages_Chats result;
+
+      var request = new Messages_GetAllChats() { except_ids  = new long[0] };
+      var task = TelegramClientHelper.Client.Invoke(request);
       var awaiter = task.GetAwaiter();
       while (!awaiter.IsCompleted) System.Threading.Thread.Sleep(1000);
-      var res = awaiter.GetResult();
+      result = awaiter.GetResult();
 
-      return res;
+      return result;
     }
-
+    /*
     public static TLAbsChats GetChats(int chatId)
     {
       TLAbsChats result;
@@ -44,49 +44,46 @@ namespace SSNotifier
 
       return result;
     }
-
-    public static TLAbsContacts GetAllContacts()
+    */
+    public static Contacts_Contacts GetAllContacts()
     {
-      TLAbsContacts result = null;
+      Contacts_Contacts result = null;
 
-      var request = new TLRequestGetContacts() { Hash = ""} ;
-      result = TelegramClientHelper.Client.SendRequestAsync<TLAbsContacts>(request).GetAwaiter().GetResult();
+      var request = new Contacts_GetContacts() { hash = 0 } ;
+      result = TelegramClientHelper.Client.Invoke(request).GetAwaiter().GetResult();
 
       return result;
     }
 
-    public static TLAbsUser[] GetUsers(int[] userIds)
+    public static UserBase[] GetUsers(long[] userIds)
     {
-      TLAbsUser[] result = null;
+      UserBase[] result = null;
 
-      TLVector<TLAbsInputUser> tLAbsInputUsers = new TLVector<TLAbsInputUser>();
-      foreach (int userId in userIds)
-        tLAbsInputUsers.Add(new TLInputUser() { UserId = userId });
+      InputUserBase[] inputUserBases = userIds.Select(uid => new InputUser() { user_id = uid }).ToArray();
 
-
-      var request = new TLRequestGetUsers() { Id = tLAbsInputUsers };
-      TLVector<TLAbsUser> users = TelegramClientHelper.Client.SendRequestAsync<TLVector<TLAbsUser>>(request).GetAwaiter().GetResult();
-      result = users.ToArray<TLAbsUser>();
+      var request = new Users_GetUsers() { id = inputUserBases };
+      result = TelegramClientHelper.Client.Invoke(request).GetAwaiter().GetResult();
 
       return result;
     }
 
-    public static int GetState()
+    /*
+    public static TLState GetState()
     {
-      int result = -1;
+      TLState result;
 
       var request = new TLRequestGetState();
-      result = TelegramClientHelper.Client.SendRequestAsync<int>(request).GetAwaiter().GetResult();
+      result = TelegramClientHelper.Client.SendRequestAsync<TLState>(request).GetAwaiter().GetResult();
 
       return result;
     }
 
 
-    public static TLAbsDifference GetDifference(int pts)
+    public static TLAbsDifference GetDifference(TLState pts)
     {
       TLAbsDifference result;
 
-      var request = new TeleSharp.TL.Updates.TLRequestGetDifference() { Pts = pts };
+      var request = new TeleSharp.TL.Updates.TLRequestGetDifference() { Pts = pts.Pts, Date = pts.Date  };
       result = TelegramClientHelper.Client.SendRequestAsync<TLAbsDifference>(request).GetAwaiter().GetResult();
 
       return result;
@@ -101,6 +98,6 @@ namespace SSNotifier
 
       return result;
     }
-
+*/
   }
 }

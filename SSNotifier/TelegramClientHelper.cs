@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Reflection;
 using System.Configuration;
-using TLSharp.Core;
-using TeleSharp.TL;
+using WTelegram;
 
 
 namespace SSNotifier
@@ -17,84 +16,43 @@ namespace SSNotifier
     /// <summary>
     /// Клиент. При обращении производится создание, подключение, аутентификация объекта клиента
     /// </summary>
-    private static TelegramClient _telegramClient = null;
-    public static TelegramClient Client
+    private static WTelegram.Client _telegramClient = null;
+    public static WTelegram.Client Client
     {
       get {
         if (_telegramClient == null)
         {
-          _telegramClient = new TelegramClient(
-            int.Parse(ConfigurationManager.AppSettings["apikey"]),
-            ConfigurationManager.AppSettings["apihash"]
-          );
-          _telegramClient.ConnectAsync().GetAwaiter().GetResult();
+          _telegramClient = new Client(Config);
+
+
+          if (!bool.Parse(ConfigurationManager.AppSettings["enableConsoleLog"]))
+          {
+            //WTelegram.Helpers.Log += (lvl, str) => System.Diagnostics.Debug.WriteLine(str); // перенаправление логов в VS
+            WTelegram.Helpers.Log = (lvl, str) => { }; 
+          }
         }
 
-        if (!Authenticate(_telegramClient))
-          throw new Exception("Error Authentication");
+        _telegramClient.LoginUserIfNeeded();
+
 
         return _telegramClient;
       }
     }
 
 
-
-    /// <summary>
-    /// Функция аутентификации клиента, при необходимости производит запрос кода
-    /// </summary>
-    /// <param name="client"></param>
-    /// <returns></returns>
-    private static bool Authenticate(TelegramClient client)
+    private static string Config(string confiValue)
     {
-      bool result  = false;
-
-      try
+      System.Console.WriteLine("Requested config value " + confiValue);
+      switch (confiValue)
       {
+        case "phone_number": return ConfigurationManager.AppSettings["phone"];
+        case "api_id": return ConfigurationManager.AppSettings["apikey"];
+        case "api_hash": return ConfigurationManager.AppSettings["apihash"];
+        case "server_address": return ConfigurationManager.AppSettings["server"]+":"+ConfigurationManager.AppSettings["serverport"];
+        case "verification_code": Console.Write("Для входа в приложение требуется код подтверждения:: "); return Console.ReadLine();
 
-        if (client.Session.TLUser == null)
-        {
-          Tuple<string, string> hashAndCode = GetTelegramCode(client);
-          if (hashAndCode != null)
-          {
-            TLUser user = client.MakeAuthAsync(ConfigurationManager.AppSettings["phone"], hashAndCode.Item1, hashAndCode.Item2).GetAwaiter().GetResult();
-            result = true;
-            System.Console.Out.WriteLine("Successuffly connected, user.FirstName=" + user.FirstName);
-          }
-          else
-          {
-            System.Console.Out.WriteLine("Cannot retrieve code");
-          }
-
-        }
-        else
-        {
-          result = true;
-          System.Console.Out.WriteLine("Already connected, user.FirstName=" + client.Session.TLUser.FirstName);
-        }
-
-
+        default: return null;                  // let WTelegramClient decide the default config
       }
-      catch (Exception ex)
-      {
-        System.Console.WriteLine(ex.StackTrace);
-      }
-
-
-      return result;
-    }
-
-    private static Tuple<string, string> GetTelegramCode(TelegramClient client) 
-    {
-      string sentCodeHash = client.SendCodeRequestAsync(ConfigurationManager.AppSettings["phone"]).GetAwaiter().GetResult() ;
-
-      System.Console.WriteLine("Для входа в приложение требуется код подтверждения:");
-      string code = System.Console.ReadLine();
-        //Microsoft.VisualBasic.Interaction.InputBox("Введите код", "для входа в приложение требуется код подтверждения");
-
-      if (code != "")
-        return new Tuple<string, string>(sentCodeHash, code);
-      else
-        return null;
     }
 
 
