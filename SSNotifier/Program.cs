@@ -4,15 +4,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Configuration;
-
+using WTelegram;
+using TL;
 
 
 namespace SSNotifier
 {
   class Program
   {
+
     static void Main(string[] args)
     {
+
       RunMode runMode = RunModeHelper.DetectMode(args);
 
       if (runMode == RunMode.help)
@@ -23,15 +26,21 @@ namespace SSNotifier
 
       switch (runMode)
       {
+
+
         case RunMode.listchat:
-          ChatUserListRetrievalHelper.GetChatList(args);
+          ChatListHelper.WriteChatList(args);
           break;
-        case RunMode.listсontact:
-          ChatUserListRetrievalHelper.GetContactList(args);
+        case RunMode.listcontact:
+          UserListHelper.WriteContactList(args);
           break;
         case RunMode.monitor:
           MonitorHelper.Monitor();
           break;
+        case RunMode.notifybot:
+          ForwardBotHelper.Forward(args) ;
+          break;
+
       }
 
 
