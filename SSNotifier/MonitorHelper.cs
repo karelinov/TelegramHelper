@@ -186,6 +186,35 @@ namespace SSNotifier
 
       return result;
     }
+
+    /// <summary>
+    /// Функция с помощью Bot User отправляет сообщение в чат с текущем пользователем
+    /// </summary>
+    private static void ForwardMonitoredMessage(Message message)
+    {
+      // Разбираем сообщение, нужны текст и от кого
+      string messageText = message.message;
+      MessageEntity[] messageEntities = new MessageEntity[] { };
+      // Откуда
+      ChatFullBase chatTo = null;
+      if (message.Peer != null)
+      {
+        chatTo = TLMH.GetFullChat(message.Peer.ID).full_chat;
+      }
+      // от кого
+      User messageFromUser = null;
+      if (message.From != null && message.From is PeerUser)
+      {
+        messageFromUser = UserListHelper.GetUser(message.From.ID);
+      }
+
+      if (chatTo !=null)
+        message = "Из чата "+chatTo.
+
+
+      Message sentMessage = TLCH.BotClient.SendMessageAsync(TLCH.CurrentUser.ToInputPeer(), messageText,null,0).Result;
+    }
+
  
 
   }
