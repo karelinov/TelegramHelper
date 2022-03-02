@@ -208,8 +208,8 @@ namespace SSNotifier
         messageFromUser = UserListHelper.GetUser(message.From.ID);
       }
 
-      if (chatTo !=null)
-        message = "Из чата "+chatTo.
+      //if (chatTo !=null)
+      //  message = "Из чата "+chatTo.
 
 
       Message sentMessage = TLCH.BotClient.SendMessageAsync(TLCH.CurrentUser.ToInputPeer(), messageText,null,0).Result;
