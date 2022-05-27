@@ -4,3 +4,5 @@ Properties
 .vs
 WTelegram
 /SSNotifier/App1.config
+/SSNotifierUI/App.Debug.config
+/SSNotifierUI/App.Release.config

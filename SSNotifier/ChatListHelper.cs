@@ -9,7 +9,7 @@ using TL;
 
 namespace SSNotifier
 {
-  class ChatListHelper
+  public class ChatListHelper
   {
     // Кэшированный Список чатов/каналов (из GetAllChats) для получения InputPeer и определения типов чатов (чат/канал)
     // Вспомогательная обёртка для перезагрузки чата и раиза ошибки при отсутствии чата с указанным id
@@ -43,20 +43,21 @@ namespace SSNotifier
       return CachedChatsInfo[chatId];
     }
 
-
-
     /// <summary>
-    /// Функция получает список чатов пользователя и выбрасывает его на экран
+    /// Функция возвращает список чатов пользователя и выбрасывает его на экран
     /// Саписок фильтруется по значению второго параметра программы (если есть)
     /// </summary>
     /// <param name="args"></param>
-    public static void WriteChatList(string[] args)
+    public static string[] GetChatList()
     {
-      Messages_Chats chats = TLMH.GetAllChats();
+      string[] result = new string[] { };
 
-      System.Console.WriteLine("Found "+ chats.chats.Count.ToString() + (args.Length>1?" (filtered) ":"") + " chats: ");
 
-      bool doWrite;
+      Messages_Chats chats = TLCH.UserClient.Messages_GetAllChats(new long[0]).Result;
+
+      //System.Console.WriteLine("Found "+ chats.chats.Count.ToString() + (args.Length>1?" (filtered) ":"") + " chats: ");
+
+      //bool doWrite;
       string chatTite;
       long chatId;
       foreach (ChatBase chat in chats.chats.Values)
@@ -83,6 +84,7 @@ namespace SSNotifier
           chatId = -1;
         }
 
+        /*
         doWrite = true;
         if ((args.Length > 1) && (!chatTite.ToUpper().Contains(args[1].ToString().ToUpper())))
           doWrite = false;
@@ -92,9 +94,15 @@ namespace SSNotifier
           string chatdata = "chat_id=" + chatId + " title=" + chatTite;
           System.Console.WriteLine(chatdata);
         }
+        */
+        result = result.Append(chatId + " ," + chatTite).ToArray();
+
       }
-      System.Console.WriteLine("\r\nPress any key ...");
-      System.Console.ReadKey();
+
+
+      return result;
+      //System.Console.WriteLine("\r\nPress any key ...");
+      //System.Console.ReadKey();
     }
 
   

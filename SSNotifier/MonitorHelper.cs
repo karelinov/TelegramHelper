@@ -11,12 +11,38 @@ using TL.Methods;
 
 namespace SSNotifier
 {
-  class MonitorHelper
+  /// <summary>
+  /// Класс - монитор сообщений Telegram
+  /// Содержит функцию Monitor для отслеживания (новых) сообщений от указанных пользователей 
+  /// и 1) показа их в UI 2) перенаправления в специальный чат
+  /// </summary>
+  public class MonitorHelper
   {
+    private static bool _StopMonitor = false; // флаг для остановки функции мониторинга, выставляется внешними функциями, запустившими поток с задачей мониторинга
+    private static Object _StopMonitorObj = new Object();
+    public static bool StopMonitor
+    {
+      get
+      {
+        lock(_StopMonitorObj)
+        {
+          return _StopMonitor;
+        }
+      }
+      set
+      {
+        lock (_StopMonitorObj)
+        {
+          _StopMonitor = value;
+        }
+      }
+    }
+
     private static long[] chatsToMonitor;
     private static long[] usersToMonitor;
     private static long chatToForwardId;
     //private static long userToForwardId;
+
 
     /// <summary>
     /// Состояния (обновлений) чатов и каналов
@@ -27,6 +53,7 @@ namespace SSNotifier
     public static void Monitor()
     {
       System.Console.WriteLine("Begin monitoring...");
+      StopMonitor = false;
 
       // Читаем настройки отслеживаемых чатов и пользователей
       chatsToMonitor = ConfigurationManager.AppSettings["monitor chats"].Split(',').Select(item => long.Parse(item)).ToArray();
@@ -51,7 +78,7 @@ namespace SSNotifier
       Process childBotProcess = null; 
 
       // Бесконечный цикл ручной проверки обновлений каждый N секунд
-      while (true)
+      while (!_StopMonitor)
       {
         //// ззапускает дочерний процесс бота по необходимости
         //if (childBotProcess == null || childBotProcess.HasExited)
@@ -136,6 +163,7 @@ namespace SSNotifier
               if (newMessage is Message)
               {
                 TLMH.ForwardMessage(newMessage as Message, TLMH.GetInputPeerbyChatId(chatToForwardId));
+                ForwardBotHelper.ForwardMessage(newMessage as Message, chatToForwardId);
                 //var res = TelegramClientHelper.UserClient.Messages_MarkDialogUnread(new InputDialogPeer() { peer = ChatListHelper.GetCachedChat(channelToMonitorId).ToInputPeer() }, false).GetAwaiter().GetResult(); 
                 InputPeer from_peer = TLMH.GetInputPeerbyChatId(newMessage.Peer.ID);
                 //from_peer = TLMH.GetInputPeerByUserId(newMessage.From.ID);

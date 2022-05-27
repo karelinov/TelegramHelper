@@ -7,7 +7,7 @@ using System.Configuration;
 
 namespace SSNotifier
 {
-  class UserListHelper
+  public class UserListHelper
   {
     /// <summary>
     /// Список контактов пользователя
@@ -42,7 +42,7 @@ namespace SSNotifier
       {
         if (_users == null)
         {
-          _users = TLMH.GetUsers(Contacts.Keys.ToArray()).Where(user => user is User).ToDictionary(user => user.ID, user => user as User);
+          //_users = TLMH.GetUsers(Contacts.Keys.ToArray()).Where(user => user is User).ToDictionary(user => user.ID, user => user as User);
         }
 
         return _users;
@@ -86,26 +86,32 @@ namespace SSNotifier
 
 
     /// <summary>
-    /// Функция получает список контактов пользователя и выбрасывает его на экран
-    /// Саписок фильтруется по значению второго параметра программы (если есть)
+    /// Функция возвращает список контактов пользователя и выбрасывает его на экран
+    /// Саписок фильтруется по значению параметра (если есть)
     /// </summary>
-    /// <param name="args"></param>
-    public static void WriteContactList(string[] args)
+    public static string[] GetContactList(string filter)
     {
-      System.Console.WriteLine("Found " + Contacts.Count.ToString() + (args.Length > 1 ? " (filtered) " : "") + " contacts: ");
+      string[] result = new string[] { };
 
-      UserBase[] users = TLMH.GetUsers(Contacts.Keys.ToArray<long>());
 
-      bool doWrite;
+      //System.Console.WriteLine("Found " + Contacts.Count.ToString() + (args.Length > 1 ? " (filtered) " : "") + " contacts: ");
+      //UserBase[] users =TLMH.GetUsers(Contacts.Keys.ToArray<long>());
+
+      Contacts_Contacts contacts = TLCH.UserClient.Contacts_GetContacts().Result;
+
       string userName, userFI;
       long userId;
-      foreach (UserBase user in users)
+
+      for (int i = 0; i < contacts.contacts.Length; i++)
       {
+        Contact contact = contacts.contacts[i];
+        UserBase user = contacts.users.Values.ToArray()[i];
+
         if (user.GetType() == typeof(User))
         {
-          userFI = ((User)user).first_name + ' ' + ((User)user).last_name;
+          userFI = (((User)user).first_name + ' ' + ((User)user).last_name); userFI = (userFI == null? "": userFI);
           userId = user.ID;
-          userName = ((User)user).username;
+          userName = ((User)user).username; userName = (userName == null? "": userName);
         }
         else
         {
@@ -114,18 +120,18 @@ namespace SSNotifier
           userName = "<EmptyUser>";
         }
 
-        doWrite = true;
-        if ((args.Length > 1) && (!(userFI + " " + userName).ToUpper().Contains(args[1].ToString().ToUpper())))
-          doWrite = false;
-
-        if (doWrite)
+        string suserInfo = "user_id=" + userId + " userFI=" + userFI + " userName=" + userName;
+        if (filter != "")
         {
-          string userData = "user_id=" + userId + " userFI=" + userFI + " userName=" + userName;
-          System.Console.WriteLine(userData);
+          if (userFI.Contains(filter, StringComparison.OrdinalIgnoreCase) || userName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+            result = result.Append(suserInfo).ToArray();
         }
+        else
+          result = result.Append(suserInfo).ToArray();
+
       }
-      System.Console.WriteLine("\r\nPress any key ...");
-      System.Console.ReadKey();
+
+      return result;
     }
   }
 }

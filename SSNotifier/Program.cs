@@ -16,8 +16,8 @@ namespace SSNotifier
     static void Main(string[] args)
     {
 
+      /*
       RunMode runMode = RunModeHelper.DetectMode(args);
-
       if (runMode == RunMode.help)
       {
         RunModeHelper.ShowHelp();
@@ -29,7 +29,7 @@ namespace SSNotifier
 
 
         case RunMode.listchat:
-          ChatListHelper.WriteChatList(args);
+          ChatListHelper.GetChatList(args);
           break;
         case RunMode.listcontact:
           UserListHelper.WriteContactList(args);
@@ -40,9 +40,9 @@ namespace SSNotifier
         case RunMode.notifybot:
           ForwardBotHelper.Forward(args) ;
           break;
-
       }
-
+      */
+      //RunModeHelper.ShowHelp();
 
     }
   }

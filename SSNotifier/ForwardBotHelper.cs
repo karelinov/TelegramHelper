@@ -8,15 +8,20 @@ using System.Linq;
 using TL;
 using System.IO;
 using TL.Methods;
+using System.Threading.Tasks;
+using System.Net.Http;
 
 namespace SSNotifier
 {
   class ForwardBotHelper
   {
-    private static long chatToForwardId;
-    private static InputPeer chatToForwardPeer = null;
-    private static Dictionary<long,InputPeer> monitorChatPeers = null;
+    //private static long chatToForwardId;
+    //private static InputPeer chatToForwardPeer = null;
+    //private static Dictionary<long,InputPeer> monitorChatPeers = null;
+    private static Dictionary<long, InputPeer> resolvedPeers = new Dictionary<long, InputPeer>(); // закэшированные вычисленные пиры для чатов 
 
+
+    /*
     public static Process StartBotProcess(Process parentMonitorProcess)
     {
       // получаем конфигурацию и создаём InputPeer для переадресации
@@ -45,13 +50,15 @@ namespace SSNotifier
         ProcessStartInfo processStartInfo = new ProcessStartInfo()
         {
           FileName = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Assembly.GetExecutingAssembly().GetName().Name + ".exe"),
-          Arguments = RunMode.notifybot.ToString() + " " + parentMonitorProcess.Id + " " + chatToForwardHash + " "+chatsToMonitorStrInfo
+          //Arguments = RunMode.notifybot.ToString() + " " + parentMonitorProcess.Id + " " + chatToForwardHash + " "+chatsToMonitorStrInfo
       };
       Process botProcess = Process.Start(processStartInfo);
 
       return botProcess;
     }
+    */
 
+    /*
     /// <summary>
     /// Тело программы бота
     /// Создаёт клиента, подключает к нему обработчик событий Update 
@@ -65,9 +72,9 @@ namespace SSNotifier
       chatToForwardId = long.Parse(ConfigurationManager.AppSettings["chatToForward"]);
       long chatToForwardHash = long.Parse(args[2]);
       if (chatToForwardHash == -1)
-        chatToForwardPeer = new InputPeerChat() { chat_id = chatToForwardId };
+        chatToForwardPeer = new InputPeerChat(chatToForwardId);
       else
-        chatToForwardPeer = new InputPeerChannel() { channel_id = chatToForwardId, access_hash= chatToForwardHash };
+        chatToForwardPeer = new InputPeerChannel(chatToForwardId, chatToForwardHash);
 
       
       // получаем список InputPeer отслеживаемых чатов
@@ -80,9 +87,9 @@ namespace SSNotifier
         {
           InputPeer inputPeer;
           if (catinfo.Item2 == -1)
-            inputPeer = new InputPeerChat() { chat_id = catinfo.Item1 };
+            inputPeer = new InputPeerChat(catinfo.Item1);
           else
-            inputPeer = new InputPeerChannel() { channel_id = catinfo.Item1, access_hash = catinfo.Item2 };
+            inputPeer = new InputPeerChannel(catinfo.Item1, catinfo.Item2);
           monitorChatPeers.Add(catinfo.Item1, inputPeer);
         }
       }
@@ -110,7 +117,9 @@ namespace SSNotifier
       }
 
     }
+    */
 
+    /*
     /// <summary>
     /// Встроенное в WTelegramClient событие получения обновлений
     /// Сообщения из обновлений отражаются отправителю
@@ -167,5 +176,49 @@ namespace SSNotifier
         }
       }
     }
+    */
+
+    public static void ForwardMessage(Message MessageToForward, long chatToForwardId)
+    {
+      InputPeer peerToForward = null;
+
+      HttpClient httpClient = new HttpClient();
+      httpClient.BaseAddress = new Uri("https://api.telegram.org");
+      var content = new FormUrlEncodedContent(new[] 
+        {
+          new KeyValuePair<string, string>("chat_id", "-100"+chatToForwardId.ToString()), 
+          new KeyValuePair<string, string>("text", "!") 
+        });
+      HttpResponseMessage response = httpClient.PostAsync("/bot" + ConfigurationManager.AppSettings["bot_token"]+"/sendMessage",content).Result;
+
+      /*
+      if (resolvedPeers.ContainsKey(chatToForwardId))
+        peerToForward = resolvedPeers[chatToForwardId];
+      else
+      {
+        Contacts_ResolvedPeer crp = TLCH.BotClient.Contacts_ResolveUsername("+XES2ZiMhpJBkOTE6").Result;
+
+        Messages_Chats chats = TLCH.BotClient.Messages_GetChats(new long[] { chatToForwardId }).Result;
+        ChatBase chat = chats.chats.First().Value;
+
+        if (chats.chats.Count == 0)
+          System.Console.WriteLine("Бот не имеет доступа к чату " + chatToForwardId);
+        else
+        {
+          resolvedPeers.Add(chatToForwardId, chats.chats[chatToForwardId]);
+          peerToForward = chats.chats[chatToForwardId];
+        }
+      }
+
+      if (peerToForward != null)
+        TLCH.BotClient.SendMessageAsync(peerToForward, "NewMessage! "+ MessageToForward.message);
+
+      Task<Message> st = TLCH.BotClient.SendMessageAsync(peerToForward, "NewMessage! ");
+      st.Wait();
+      var r = st.Result;
+      */
+
+    }
+
   }
 }

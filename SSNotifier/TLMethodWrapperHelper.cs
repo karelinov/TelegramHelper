@@ -50,9 +50,10 @@ namespace SSNotifier
     {
       UserBase[] result = null;
 
-      InputUserBase[] inputUserBases = userIds.Select(uid => new InputUser() { user_id = uid }).ToArray();
-      if (client == null) client = TLCH.UserClient;
-      result = client.Users_GetUsers(inputUserBases).Result;
+      throw new NotImplementedException();
+      //InputUserBase[] inputUserBases = userIds.Select(uid => new InputUser() { user_id = uid }).ToArray();
+      //if (client == null) client = TLCH.UserClient;
+      //result = client.Users_GetUsers(inputUserBases).Result;
 
       return result;
     }
@@ -61,9 +62,10 @@ namespace SSNotifier
     {
       Users_UserFull result = null;
 
-      InputUserBase inputUserBase = new InputUser() { user_id = userId };
-      if (client == null) client = TLCH.UserClient;
-      result = client.Users_GetFullUser(inputUserBase).Result;
+      throw new NotImplementedException();
+      //InputUserBase inputUserBase = new InputUser() { user_id = userId };
+      //if (client == null) client = TLCH.UserClient;
+      //result = client.Users_GetFullUser(inputUserBase).Result;
 
 
       return result;

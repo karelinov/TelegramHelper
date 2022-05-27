@@ -13,7 +13,7 @@ namespace SSNotifier
 {
   class TLCH : TelegramClientHelper { }; // просто как короткий алиас основного класса
 
-  class TelegramClientHelper
+  public class TelegramClientHelper
   {
     /// <summary>
     /// Клиент. При обращении производится создание, подключение, аутентификация объекта клиента
@@ -79,7 +79,7 @@ namespace SSNotifier
         case "api_id": return ConfigurationManager.AppSettings["apikey"];
         case "api_hash": return ConfigurationManager.AppSettings["apihash"];
         case "server_address": return ConfigurationManager.AppSettings["server"] + ":" + ConfigurationManager.AppSettings["serverport"];
-        case "verification_code": Console.Write("Для входа в приложение требуется код подтверждения:: "); return Console.ReadLine();
+        case "verification_code": return ValidationCodeProvider.Provider.GetValidationCode();  //Console.Write("Для входа в приложение требуется код подтверждения:: "); return Console.ReadLine();
         case "first_name": return "Oleg";      // if sign-up is required
         case "last_name": return "Oleg";        // if sign-up is required
 

@@ -6,4 +6,30 @@
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.SlowCheetah" Version="4.0.8">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SSNotifier\SSNotifier.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="App.config">
+      <TransformOnBuild>true</TransformOnBuild>
+      <CopyToOutputDirectory></CopyToOutputDirectory>
+    </None>
+    <None Update="App.Debug.config">
+      <IsTransformFile>true</IsTransformFile>
+      <DependentUpon>App.config</DependentUpon>
+    </None>
+    <None Update="App.Release.config">
+      <IsTransformFile>true</IsTransformFile>
+      <DependentUpon>App.config</DependentUpon>
+    </None>
+  </ItemGroup>
+
 </Project>
