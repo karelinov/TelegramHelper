@@ -55,6 +55,11 @@ namespace SSNotifierUI
       }
       else
       {
+        if(_textBox.Text.Length > 1000000)
+        {
+          _textBox.Text = _textBox.Text.Substring(50000);
+        }
+
         _textBox.Text += text;
       }
     }

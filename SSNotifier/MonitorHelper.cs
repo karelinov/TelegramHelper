@@ -73,20 +73,9 @@ namespace SSNotifier
         }
       }
 
-      // Запуск дочернего процесса бота нотификаций, который заменяет пересланные мониторингом
-      // сообщения на такие же, но свои, чтобы были нотификации
-      Process childBotProcess = null; 
-
       // Бесконечный цикл ручной проверки обновлений каждый N секунд
       while (!_StopMonitor)
       {
-        //// ззапускает дочерний процесс бота по необходимости
-        //if (childBotProcess == null || childBotProcess.HasExited)
-        //{
-        //  childBotProcess = ForwardBotHelper.StartBotProcess(Process.GetCurrentProcess());
-        //  System.Console.WriteLine("Spawnet bot process "+ childBotProcess.Id);
-        //}
-
         HandleChatUpdates();
         HandleChannelUpdates();
 
@@ -110,7 +99,8 @@ namespace SSNotifier
       {
         if (MessageToForward(newMessage))
         {
-          TLMH.ForwardMessage(newMessage as Message, TLMH.GetInputPeerbyChatId(chatToForwardId));
+          ForwardMessage(newMessage as Message, GetInputPeerbyChatId(chatToForwardId));
+          ForwardBotHelper.NotifyForwardMessage(newMessage as Message);
           System.Console.WriteLine("forwarded message id=" + newMessage.ID + " " + (newMessage as Message).message);
         }
       }
@@ -162,12 +152,12 @@ namespace SSNotifier
             {
               if (newMessage is Message)
               {
-                TLMH.ForwardMessage(newMessage as Message, TLMH.GetInputPeerbyChatId(chatToForwardId));
-                ForwardBotHelper.ForwardMessage(newMessage as Message, chatToForwardId);
+                ForwardMessage(newMessage as Message, GetInputPeerbyChatId(chatToForwardId));
+                ForwardBotHelper.NotifyForwardMessage(newMessage as Message);
                 //var res = TelegramClientHelper.UserClient.Messages_MarkDialogUnread(new InputDialogPeer() { peer = ChatListHelper.GetCachedChat(channelToMonitorId).ToInputPeer() }, false).GetAwaiter().GetResult(); 
-                InputPeer from_peer = TLMH.GetInputPeerbyChatId(newMessage.Peer.ID);
+                InputPeer from_peer = GetInputPeerbyChatId(newMessage.Peer.ID);
                 //from_peer = TLMH.GetInputPeerByUserId(newMessage.From.ID);
-                InputPeer to_peer = TLMH.GetInputPeerbyChatId(chatToForwardId);
+                InputPeer to_peer = GetInputPeerbyChatId(chatToForwardId);
 
                 Contacts_ResolvedPeer contacts_ResolvedPeer = TLCH.BotClient.Contacts_ResolveUsername("Oleg_Karelin").Result;
 
@@ -200,6 +190,62 @@ namespace SSNotifier
     }
 
 
+    public static UpdatesBase ForwardMessage(Message message, InputPeer peerTo, InputPeer peerFrom = null)
+    {
+      UpdatesBase result;
+
+      if (peerFrom == null)
+      {
+        if (message.Peer is PeerChannel || message.Peer is PeerChat)
+          peerFrom = GetInputPeerbyChatId(message.Peer.ID);
+        else if (message.Peer is PeerUser)
+          peerFrom = GetInputPeerByUserId(message.Peer.ID);
+        else
+          throw new Exception("Неизвестный тип источника сообщения для перенаправляения =" + message.From.GetType().Name);
+      }
+
+      result = TLCH.UserClient.Messages_ForwardMessages(peerFrom, new int[] { message.ID }, new long[] { new Random().Next(0, int.MaxValue) }, peerTo).Result;
+
+      return result;
+    }
+
+
+    /// <summary>
+    /// Вспомогательная функция конструирует объект Peer по chatId (для отправки сообщения)
+    /// </summary>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
+    public static InputPeer GetInputPeerbyChatId(long chatId)
+    {
+      InputPeer result;
+
+      result = ChatListHelper.GetCachedChat(chatId).ToInputPeer();
+
+      return result;
+    }
+
+
+    /// <summary>
+    /// Вспомогательная функция конструирует объект InputPeer по Peer (для отправки сообщения)
+    /// </summary>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
+    public static InputPeer GetInputPeerByUserId(long userId)
+    {
+      InputPeer result;
+
+      User user = UserListHelper.GetUser(userId);
+      result = user.ToInputPeer();
+
+      return result;
+    }
+
+    /// <summary>
+    /// Функция определяет, надо ли перенаправлять сообщение 
+    /// проверяя, что оно из отслеживаемого чата и от отслеживаемого пользователя
+    /// </summary>
+    /// <param name="message"></param>
+    /// <returns></returns>
     private static bool MessageToForward(MessageBase message)
     {
       bool result = false;
@@ -214,36 +260,6 @@ namespace SSNotifier
 
       return result;
     }
-
-    /// <summary>
-    /// Функция с помощью Bot User отправляет сообщение в чат с текущем пользователем
-    /// </summary>
-    private static void ForwardMonitoredMessage(Message message)
-    {
-      // Разбираем сообщение, нужны текст и от кого
-      string messageText = message.message;
-      MessageEntity[] messageEntities = new MessageEntity[] { };
-      // Откуда
-      ChatFullBase chatTo = null;
-      if (message.Peer != null)
-      {
-        chatTo = TLMH.GetFullChat(message.Peer.ID).full_chat;
-      }
-      // от кого
-      User messageFromUser = null;
-      if (message.From != null && message.From is PeerUser)
-      {
-        messageFromUser = UserListHelper.GetUser(message.From.ID);
-      }
-
-      //if (chatTo !=null)
-      //  message = "Из чата "+chatTo.
-
-
-      Message sentMessage = TLCH.BotClient.SendMessageAsync(TLCH.CurrentUser.ToInputPeer(), messageText,null,0).Result;
-    }
-
- 
 
   }
 }

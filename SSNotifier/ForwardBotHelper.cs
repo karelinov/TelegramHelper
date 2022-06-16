@@ -178,15 +178,22 @@ namespace SSNotifier
     }
     */
 
-    public static void ForwardMessage(Message MessageToForward, long chatToForwardId)
+    /// <summary>
+    /// Нотифицирует о перенаправленном сообщении, посылая "!" в чат, куда перенаправляются сообщения
+    /// Нужно для того, чтобы было показано , что в чате новые сообщения, т.к. при перенаправлении они отмечаются как прочитанные
+    /// </summary>
+    /// <param name="MessageToForward"></param>
+    public static void NotifyForwardMessage(Message MessageToForward)
     {
-      InputPeer peerToForward = null;
+      //InputPeer peerToForward = null;
+
+      string chatToForwardId = ConfigurationManager.AppSettings["botChatToForward"];
 
       HttpClient httpClient = new HttpClient();
       httpClient.BaseAddress = new Uri("https://api.telegram.org");
       var content = new FormUrlEncodedContent(new[] 
         {
-          new KeyValuePair<string, string>("chat_id", "-100"+chatToForwardId.ToString()), 
+          new KeyValuePair<string, string>("chat_id", chatToForwardId), 
           new KeyValuePair<string, string>("text", "!") 
         });
       HttpResponseMessage response = httpClient.PostAsync("/bot" + ConfigurationManager.AppSettings["bot_token"]+"/sendMessage",content).Result;
@@ -196,8 +203,6 @@ namespace SSNotifier
         peerToForward = resolvedPeers[chatToForwardId];
       else
       {
-        Contacts_ResolvedPeer crp = TLCH.BotClient.Contacts_ResolveUsername("+XES2ZiMhpJBkOTE6").Result;
-
         Messages_Chats chats = TLCH.BotClient.Messages_GetChats(new long[] { chatToForwardId }).Result;
         ChatBase chat = chats.chats.First().Value;
 
@@ -210,13 +215,34 @@ namespace SSNotifier
         }
       }
 
-      if (peerToForward != null)
-        TLCH.BotClient.SendMessageAsync(peerToForward, "NewMessage! "+ MessageToForward.message);
+      if (peerToForward == null)
+      {
+        System.Console.WriteLine("Невозможно отправить сообщение");
+        return;
+      }
 
-      Task<Message> st = TLCH.BotClient.SendMessageAsync(peerToForward, "NewMessage! ");
-      st.Wait();
-      var r = st.Result;
+      // конструируем данные сообщения
+      string messageStr = "";
+      if(MessageToForward.flags.HasFlag(Message.Flags.has_from_id))
+      {
+        messageStr += "\r\n";
+        messageStr += "from: ";
+        User userFrom = UserListHelper.GetUser(MessageToForward.from_id.ID);
+        if (userFrom != null)
+          messageStr += userFrom.first_name +" "+userFrom.last_name;
+        
+      }
+      messageStr += "\r\n" + MessageToForward.message;
       */
+
+
+      //TLCH.BotClient.SendMessageAsync(peerToForward, "!").Wait();
+
+
+      //Task<Message> st = TLCH.BotClient.SendMessageAsync(peerToForward, "!");
+      //st.Wait();
+      //var r = st.Result;
+
 
     }
 

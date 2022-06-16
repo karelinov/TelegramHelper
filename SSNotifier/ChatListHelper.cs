@@ -20,7 +20,7 @@ namespace SSNotifier
       {
         if (_cachedChatsInfo == null)
         {
-          Messages_Chats messages_Chats = TLMH.GetAllChats();
+          Messages_Chats messages_Chats = TLCH.UserClient.Messages_GetAllChats().Result;
           _cachedChatsInfo = messages_Chats.chats;
         }
         return _cachedChatsInfo; 

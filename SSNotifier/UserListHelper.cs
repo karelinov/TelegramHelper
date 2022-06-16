@@ -20,7 +20,7 @@ namespace SSNotifier
       {
         if (_contacts == null)
         {
-          _contacts = TLMH.GetAllContacts().contacts.ToDictionary(c => c.user_id);  //Select(c => new KeyValuePair<long, Contact>(c.user_id, c)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+          _contacts = TLCH.UserClient.Contacts_GetContacts().Result.contacts.ToDictionary(c => c.user_id); 
         }
 
         return _contacts;
@@ -35,14 +35,21 @@ namespace SSNotifier
     /// Список пользователей, первоначально из контактов пользователя
     /// </summary>
     /// 
-    private static Dictionary<long, User> _users = null;
+    private static Dictionary<long, User> _users = null;// new Dictionary<long, User>();
+
     public static Dictionary<long, User> Users
     {
       get
-      {
+      { 
         if (_users == null)
         {
-          //_users = TLMH.GetUsers(Contacts.Keys.ToArray()).Where(user => user is User).ToDictionary(user => user.ID, user => user as User);
+          _users = new Dictionary<long, User>();
+
+          Messages_Dialogs dialogs = TLCH.UserClient.Messages_GetAllDialogs().Result;
+          foreach(User user in dialogs.users.Values.ToArray())
+          {
+            _users.Add(user.ID, user);
+          }
         }
 
         return _users;
@@ -53,37 +60,16 @@ namespace SSNotifier
       }
     }
 
+
     public static User GetUser(long userId)
     {
       User result = null;
 
-      if (!Users.ContainsKey(userId)) // если контакта с таким user_id нет в списке, получаем отдельным вызовом
-      {
-        var users = TLMH.GetUsers(new long[] { userId });
-        if (users.Length > 0)
-        {
-          if (users[0] is User)
-          {
-            Users.Add(userId, users[0] as User);
-          }
-          else
-            throw new Exception("полученный объект " + users[0].GetType().Name + "не является объектом User");
-        }
-        else if (userId == long.Parse(ConfigurationManager.AppSettings["userToForward"]))
-        {
-          Contacts_ResolvedPeer contacts_ResolvedPeer = TLCH.UserClient.Contacts_ResolveUsername(ConfigurationManager.AppSettings["userNameToForward"]).Result;
-          Users.Add(userId, contacts_ResolvedPeer.User);
-        }
-
-
-      }
-
-      result = Users[userId];
+      if (Users.ContainsKey(userId));
+        result = Users[userId];
 
       return result;
     }
-
-
 
     /// <summary>
     /// Функция возвращает список контактов пользователя и выбрасывает его на экран
