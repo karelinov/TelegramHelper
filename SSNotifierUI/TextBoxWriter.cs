@@ -15,9 +15,11 @@ namespace SSNotifierUI
   public class TextBoxWriter : TextWriter
   {
     private readonly TextBox _textBox;
-    public TextBoxWriter(TextBox textBox)
+    private readonly ToolStripStatusLabel _toolStripStatusLabel;
+    public TextBoxWriter(TextBox textBox, ToolStripStatusLabel toolStripStatusLabel)
     {
       _textBox = textBox;
+      _toolStripStatusLabel = toolStripStatusLabel;
     }
 
     public override void Write(char value)
@@ -55,12 +57,24 @@ namespace SSNotifierUI
       }
       else
       {
-        if(_textBox.Text.Length > 1000000)
+        if (text.StartsWith("status:",StringComparison.OrdinalIgnoreCase)) // если вначале "status" пишем в статус
         {
-          _textBox.Text = _textBox.Text.Substring(50000);
+          _toolStripStatusLabel.Text = DateTime.Now.ToString("yyyyMMdd hh:mm:ss ") + text;
+        }
+        else // иначе пишем в textbox
+        {
+          if (_textBox.Text.Length > 1000000)
+          {
+            _textBox.Text = _textBox.Text.Substring(50000);
+          }
+
+          if (_textBox.Text.Length == 0 || (_textBox.Text.Length > 0 && _textBox.Text[_textBox.Text.Length - 1] == '\n'))
+            _textBox.Text += DateTime.Now.ToString("yyyyMMdd hh:mm:ss ");
+
+          _textBox.Text += text;
         }
 
-        _textBox.Text += text;
+
       }
     }
   }

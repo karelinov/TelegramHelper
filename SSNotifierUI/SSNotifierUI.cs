@@ -39,7 +39,7 @@ namespace SSNotifierUI
 
     private void SSNotifierUI_Load(object sender, EventArgs e)
     {
-      Console.SetOut(new TextBoxWriter(textBox1));
+      Console.SetOut(new TextBoxWriter(textBox1, tsslStatusMessage));
     }
 
     private void textBox1_TextChanged(object sender, EventArgs e)
@@ -69,7 +69,16 @@ namespace SSNotifierUI
 
       if (tsbRunMonitor.CheckState == CheckState.Unchecked) {
         System.Console.WriteLine("Starting monitor task...");
-        MonitorTask = new Task(() => MonitorHelper.Monitor());
+        MonitorTask = new Task(() =>
+          {
+          while (!MonitorHelper.StopMonitor) // при обрывах связи функция мониторинга может завершиться, круимся в цикле и перезапускаем её
+          {
+            MonitorHelper.Monitor();
+            if (!MonitorHelper.StopMonitor)
+              System.Threading.Thread.Sleep(2000); // если задача прервана не пользователем, ждём N сек, чтобы клиент переконнектился
+            }
+          }
+        );
         MonitorTask.Start();
         System.Console.WriteLine("Monitor task Started");
         tsbRunMonitor.CheckState = CheckState.Checked;

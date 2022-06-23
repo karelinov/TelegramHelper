@@ -50,39 +50,69 @@ namespace SSNotifier
     private static Updates_State curChatPts;
     private static Dictionary<long, int> curChannelPtss;
 
+
+    private static Object _syncronizedTimeSyncObj = new object();
+    private static DateTime _syncronizedTime = DateTime.MinValue;
+    private static DateTime SyncronizedTime
+    {
+      get
+      {
+        lock(_syncronizedTimeSyncObj)
+        {
+          return _syncronizedTime;
+        }
+      }
+      set
+      {
+        lock (_syncronizedTimeSyncObj)
+        {
+          _syncronizedTime = value;
+        }
+      }
+    }
+
     public static void Monitor()
     {
       System.Console.WriteLine("Begin monitoring...");
       StopMonitor = false;
 
-      // Читаем настройки отслеживаемых чатов и пользователей
-      chatsToMonitor = ConfigurationManager.AppSettings["monitor chats"].Split(',').Select(item => long.Parse(item)).ToArray();
-      usersToMonitor = ConfigurationManager.AppSettings["monitor users"].Split(',').Select(item => long.Parse(item)).ToArray();
-      chatToForwardId = long.Parse(ConfigurationManager.AppSettings["chatToForward"]);
-      //userToForwardId = long.Parse(ConfigurationManager.AppSettings["userToForward"]);
-
-      curChatPts = TelegramClientHelper.UserClient.Updates_GetState().GetAwaiter().GetResult();
-      curChannelPtss = new Dictionary<long, int>();
-      foreach (long curChatId in chatsToMonitor)
+      try
       {
-        if (chatsToMonitor.Contains(curChatId) && ChatListHelper.GetCachedChat(curChatId) is Channel)
+
+        // Читаем настройки отслеживаемых чатов и пользователей
+        chatsToMonitor = ConfigurationManager.AppSettings["monitor chats"].Split(',').Select(item => long.Parse(item)).ToArray();
+        usersToMonitor = ConfigurationManager.AppSettings["monitor users"].Split(',').Select(item => long.Parse(item)).ToArray();
+        chatToForwardId = long.Parse(ConfigurationManager.AppSettings["chatToForward"]);
+        //userToForwardId = long.Parse(ConfigurationManager.AppSettings["userToForward"]);
+
+        curChatPts = TelegramClientHelper.UserClient.Updates_GetState().GetAwaiter().GetResult();
+        curChannelPtss = new Dictionary<long, int>();
+        foreach (long curChatId in chatsToMonitor)
         {
-          int channelInitialPts = (TelegramClientHelper.UserClient.Channels_GetFullChannel(ChatListHelper.GetCachedChat(curChatId) as Channel).GetAwaiter().GetResult().full_chat as ChannelFull).pts;
-          channelInitialPts = channelInitialPts > 15? channelInitialPts - 100: 1;
-          curChannelPtss.Add(curChatId, channelInitialPts);
+          if (chatsToMonitor.Contains(curChatId) && ChatListHelper.GetCachedChat(curChatId) is Channel)
+          {
+            int channelInitialPts = (TelegramClientHelper.UserClient.Channels_GetFullChannel(ChatListHelper.GetCachedChat(curChatId) as Channel).GetAwaiter().GetResult().full_chat as ChannelFull).pts;
+            channelInitialPts = channelInitialPts > 15 ? channelInitialPts - 100 : 1;
+            curChannelPtss.Add(curChatId, channelInitialPts);
+          }
         }
-      }
 
-      // Бесконечный цикл ручной проверки обновлений каждый N секунд
-      while (!_StopMonitor)
+        // Бесконечный цикл ручной проверки обновлений каждый N секунд
+        while (!_StopMonitor)
+        {
+          HandleChatUpdates();
+          HandleChannelUpdates();
+          if (SyncronizedTime < DateTime.Now) // отмечаем время, которое уже обработали, чтобы при перезапуске понимать, какие сообщения уже не надо пересылать
+            SyncronizedTime = DateTime.Now; 
+
+          System.Threading.Thread.Sleep(3000);
+        }
+
+      }
+      catch (Exception e)
       {
-        HandleChatUpdates();
-        HandleChannelUpdates();
-
-        System.Threading.Thread.Sleep(1000);
+        System.Console.WriteLine("Monitor Function Exception "+e.Message);
       }
-
-
 
     }
 
@@ -93,15 +123,32 @@ namespace SSNotifier
     /// </summary>
     private static void HandleChatUpdates()
     {
-      Updates_DifferenceBase differences = TelegramClientHelper.UserClient.Updates_GetDifference(curChatPts.pts, curChatPts.date, curChatPts.qts).GetAwaiter().GetResult();
+      System.Console.WriteLine("status:Получаем обновления для chats ...");
+
+      Client userClient = TelegramClientHelper.UserClient;
+
+
+      Updates_DifferenceBase differences = null;
+      Task<Updates_DifferenceBase> taskDifferences = userClient.Updates_GetDifference(curChatPts.pts, curChatPts.date, curChatPts.qts);
+      bool intime = taskDifferences.Wait(5000);
+      if (intime)
+      {
+        differences = taskDifferences.Result;
+      }
+      else
+        throw new TimeoutException();
+      
 
       foreach (MessageBase newMessage in differences.NewMessages)
       {
         if (MessageToForward(newMessage))
         {
-          ForwardMessage(newMessage as Message, GetInputPeerbyChatId(chatToForwardId));
-          ForwardBotHelper.NotifyForwardMessage(newMessage as Message);
-          System.Console.WriteLine("forwarded message id=" + newMessage.ID + " " + (newMessage as Message).message);
+          if(newMessage.Date >= SyncronizedTime) // отправляем только сообщения, которые после отмеченного времени 
+          {
+            ForwardMessage(newMessage as Message, GetInputPeerbyChatId(chatToForwardId));
+            ForwardBotHelper.NotifyForwardMessage(newMessage as Message);
+            System.Console.WriteLine("forwarded message " + newMessage.Date.ToString("yyyy-MM-dd hh:mm:ss") + " " + (newMessage as Message).message);
+          }
         }
       }
 
@@ -121,7 +168,7 @@ namespace SSNotifier
       {
         curChatPts = (differences as Updates_DifferenceTooLong).State;
       }
-
+      System.Console.WriteLine("status:Завершено получение обновлений для chats ");
     }
 
     /// <summary>
@@ -140,6 +187,8 @@ namespace SSNotifier
         while (!finalFlag)
         {
           // Получаем обновления
+          System.Console.WriteLine("status:Получаем обновления для channel= " + channelToMonitorId + "...");
+
           int curChannelPts = curChannelPtss[channelToMonitorId];
           Channel curChannel = ChatListHelper.GetCachedChat(channelToMonitorId) as Channel;
 
@@ -152,20 +201,12 @@ namespace SSNotifier
             {
               if (newMessage is Message)
               {
-                ForwardMessage(newMessage as Message, GetInputPeerbyChatId(chatToForwardId));
-                ForwardBotHelper.NotifyForwardMessage(newMessage as Message);
-                //var res = TelegramClientHelper.UserClient.Messages_MarkDialogUnread(new InputDialogPeer() { peer = ChatListHelper.GetCachedChat(channelToMonitorId).ToInputPeer() }, false).GetAwaiter().GetResult(); 
-                InputPeer from_peer = GetInputPeerbyChatId(newMessage.Peer.ID);
-                //from_peer = TLMH.GetInputPeerByUserId(newMessage.From.ID);
-                InputPeer to_peer = GetInputPeerbyChatId(chatToForwardId);
-
-                Contacts_ResolvedPeer contacts_ResolvedPeer = TLCH.BotClient.Contacts_ResolveUsername("Oleg_Karelin").Result;
-
-                //Message sentMessage = TLCH.BotClient.SendMessageAsync(contacts_ResolvedPeer.UserOrChat.ToInputPeer(), (newMessage as Message).message).Result;
-
-                //UpdatesBase updatesBase = TLCH.BotClient.Messages_ForwardMessages(from_peer, new int[] { newMessage.ID }, new long[] { new Random().Next(0, int.MaxValue) }, to_peer).Result;
-
-                System.Console.WriteLine("forwarded message id=" + newMessage.ID + " "+ (newMessage as Message).message);
+                if (newMessage.Date >= SyncronizedTime) // отправляем только сообщения, которые после отмеченного времени 
+                {
+                  ForwardMessage(newMessage as Message, GetInputPeerbyChatId(chatToForwardId));
+                  ForwardBotHelper.NotifyForwardMessage(newMessage as Message);
+                  System.Console.WriteLine("forwarded message " + newMessage.Date.ToString("yyyy-MM-dd hh:mm:ss")+" " + (newMessage as Message).message);
+                }
               }
             }
           }
@@ -184,9 +225,11 @@ namespace SSNotifier
           {
             // хреновый вариант, обновлений слишком много, обновления не будут получены, надо начинать получать обновления с текущего времени
             curChannelPtss[channelToMonitorId] = (TelegramClientHelper.UserClient.Channels_GetFullChannel(ChatListHelper.GetCachedChat(channelToMonitorId) as Channel).GetAwaiter().GetResult().full_chat as ChannelFull).pts;
+            System.Console.WriteLine("обнаружено, что невозможно получить последние обновления для channel= " + channelToMonitorId+" - будут извлекаться только новые");
           }
         }
       }
+      System.Console.WriteLine("status:Завершено получение обновлений для channels ");
     }
 
 

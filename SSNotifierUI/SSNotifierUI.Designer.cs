@@ -40,7 +40,11 @@ namespace SSNotifierUI
       this.tsbGetContacdtList = new System.Windows.Forms.ToolStripButton();
       this.toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
       this.tstbGetContactList = new System.Windows.Forms.ToolStripTextBox();
+      this.statusStrip1 = new System.Windows.Forms.StatusStrip();
+      this.tsslStatusMessage = new System.Windows.Forms.ToolStripStatusLabel();
+      this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
       this.toolStrip1.SuspendLayout();
+      this.statusStrip1.SuspendLayout();
       this.SuspendLayout();
       // 
       // SSnotifyIcon
@@ -56,7 +60,7 @@ namespace SSNotifierUI
       this.textBox1.Multiline = true;
       this.textBox1.Name = "textBox1";
       this.textBox1.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-      this.textBox1.Size = new System.Drawing.Size(1161, 457);
+      this.textBox1.Size = new System.Drawing.Size(1161, 433);
       this.textBox1.TabIndex = 0;
       this.textBox1.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
       // 
@@ -127,6 +131,28 @@ namespace SSNotifierUI
       this.tstbGetContactList.ToolTipText = "будут отфильтрованы только контакты, содержащие указанный текст";
       this.tstbGetContactList.KeyDown += new System.Windows.Forms.KeyEventHandler(this.tstbGetContactList_KeyDown);
       // 
+      // statusStrip1
+      // 
+      this.statusStrip1.ImageScalingSize = new System.Drawing.Size(20, 20);
+      this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.tsslStatusMessage,
+            this.toolStripStatusLabel1});
+      this.statusStrip1.Location = new System.Drawing.Point(0, 460);
+      this.statusStrip1.Name = "statusStrip1";
+      this.statusStrip1.Size = new System.Drawing.Size(1161, 24);
+      this.statusStrip1.TabIndex = 2;
+      this.statusStrip1.Text = "statusStrip1";
+      // 
+      // tsslStatusMessage
+      // 
+      this.tsslStatusMessage.Name = "tsslStatusMessage";
+      this.tsslStatusMessage.Size = new System.Drawing.Size(0, 18);
+      // 
+      // toolStripStatusLabel1
+      // 
+      this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
+      this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 18);
+      // 
       // SSNotifierUI
       // 
       this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
@@ -134,6 +160,7 @@ namespace SSNotifierUI
       this.ClientSize = new System.Drawing.Size(1161, 484);
       this.Controls.Add(this.textBox1);
       this.Controls.Add(this.toolStrip1);
+      this.Controls.Add(this.statusStrip1);
       this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
       this.Margin = new System.Windows.Forms.Padding(2);
       this.Name = "SSNotifierUI";
@@ -143,6 +170,8 @@ namespace SSNotifierUI
       this.Resize += new System.EventHandler(this.SSNotifierUI_Resize);
       this.toolStrip1.ResumeLayout(false);
       this.toolStrip1.PerformLayout();
+      this.statusStrip1.ResumeLayout(false);
+      this.statusStrip1.PerformLayout();
       this.ResumeLayout(false);
       this.PerformLayout();
 
@@ -159,6 +188,9 @@ namespace SSNotifierUI
     private System.Windows.Forms.ToolStripButton tsbGetContacdtList;
     private System.Windows.Forms.ToolStripLabel toolStripLabel1;
     private System.Windows.Forms.ToolStripTextBox tstbGetContactList;
+    private System.Windows.Forms.StatusStrip statusStrip1;
+    private System.Windows.Forms.ToolStripStatusLabel tsslStatusMessage;
+    public System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
   }
 }
 
