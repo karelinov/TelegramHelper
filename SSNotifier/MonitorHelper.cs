@@ -85,7 +85,10 @@ namespace SSNotifier
         chatToForwardId = long.Parse(ConfigurationManager.AppSettings["chatToForward"]);
         //userToForwardId = long.Parse(ConfigurationManager.AppSettings["userToForward"]);
 
-        curChatPts = TelegramClientHelper.UserClient.Updates_GetState().GetAwaiter().GetResult();
+
+        Client userClient = TLCH.UserClient;
+        curChatPts = WaitTask(userClient.Updates_GetState());
+
         curChannelPtss = new Dictionary<long, int>();
         foreach (long curChatId in chatsToMonitor)
         {
@@ -130,14 +133,8 @@ namespace SSNotifier
 
       Updates_DifferenceBase differences = null;
       Task<Updates_DifferenceBase> taskDifferences = userClient.Updates_GetDifference(curChatPts.pts, curChatPts.date, curChatPts.qts);
-      bool intime = taskDifferences.Wait(5000);
-      if (intime)
-      {
-        differences = taskDifferences.Result;
-      }
-      else
-        throw new TimeoutException();
-      
+      WaitTask(taskDifferences);
+      differences = taskDifferences.Result;
 
       foreach (MessageBase newMessage in differences.NewMessages)
       {
@@ -192,7 +189,9 @@ namespace SSNotifier
           int curChannelPts = curChannelPtss[channelToMonitorId];
           Channel curChannel = ChatListHelper.GetCachedChat(channelToMonitorId) as Channel;
 
-          Updates_ChannelDifferenceBase differences = TelegramClientHelper.UserClient.Updates_GetChannelDifference(curChannel, new ChannelMessagesFilter(){ }, curChannelPts, 100).GetAwaiter().GetResult();
+          Task<Updates_ChannelDifferenceBase> differencesTask = TLCH.UserClient.Updates_GetChannelDifference(curChannel, new ChannelMessagesFilter() { }, curChannelPts, 100);
+          WaitTask(differencesTask);
+          Updates_ChannelDifferenceBase differences = differencesTask.Result;
 
           // Каждое полученное в обновлении сообщение перенаправляем (если оно от нужных пользователей)
           foreach (MessageBase newMessage in differences.NewMessages)
@@ -224,7 +223,10 @@ namespace SSNotifier
           else if (differences is Updates_ChannelDifferenceTooLong)
           {
             // хреновый вариант, обновлений слишком много, обновления не будут получены, надо начинать получать обновления с текущего времени
-            curChannelPtss[channelToMonitorId] = (TelegramClientHelper.UserClient.Channels_GetFullChannel(ChatListHelper.GetCachedChat(channelToMonitorId) as Channel).GetAwaiter().GetResult().full_chat as ChannelFull).pts;
+            Task<Messages_ChatFull> fullChannelTask = TLCH.UserClient.Channels_GetFullChannel(ChatListHelper.GetCachedChat(channelToMonitorId) as Channel);
+            WaitTask(fullChannelTask);
+            curChannelPtss[channelToMonitorId] = (fullChannelTask.Result.full_chat as ChannelFull).pts;
+
             System.Console.WriteLine("обнаружено, что невозможно получить последние обновления для channel= " + channelToMonitorId+" - будут извлекаться только новые");
           }
         }
@@ -247,7 +249,10 @@ namespace SSNotifier
           throw new Exception("Неизвестный тип источника сообщения для перенаправляения =" + message.From.GetType().Name);
       }
 
-      result = TLCH.UserClient.Messages_ForwardMessages(peerFrom, new int[] { message.ID }, new long[] { new Random().Next(0, int.MaxValue) }, peerTo).Result;
+
+      Task<UpdatesBase> forwardTask = TLCH.UserClient.Messages_ForwardMessages(peerFrom, new int[] { message.ID }, new long[] { new Random().Next(0, int.MaxValue) }, peerTo);
+      WaitTask(forwardTask);
+      result = forwardTask.Result;
 
       return result;
     }
@@ -303,6 +308,35 @@ namespace SSNotifier
 
       return result;
     }
+
+
+    private static T WaitTask<T>(Task<T> task, int waitMs = 5000, bool throwOnTimeout = true, bool resetClientOnTimeout = true)
+    {
+      T result = default(T); 
+
+
+      bool intime = task.Wait(waitMs);
+      if (intime)
+      {
+        result = task.Result;
+      }
+      else
+      {
+        /*
+        if (resetClientOnTimeout)
+        {
+          TLCH.UserClient.Reset(true, true);
+          TLCH.UserClient = null;
+        }
+        */  
+
+        if (throwOnTimeout)
+          throw new TimeoutException();
+      }
+
+      return result;
+    }
+
 
   }
 }

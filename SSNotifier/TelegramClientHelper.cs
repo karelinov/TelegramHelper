@@ -44,6 +44,10 @@ namespace SSNotifier
 
         return _telegramClient;
       }
+      set
+      {
+        _telegramClient = value;
+      }
     }
 
     public static WTelegram.Client BotClient

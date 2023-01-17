@@ -71,7 +71,7 @@ namespace SSNotifierUI
         System.Console.WriteLine("Starting monitor task...");
         MonitorTask = new Task(() =>
           {
-          while (!MonitorHelper.StopMonitor) // при обрывах связи функция мониторинга может завершиться, круимся в цикле и перезапускаем её
+          while (!MonitorHelper.StopMonitor) // при обрывах связи функция мониторинга может завершиться, кружимся в цикле и перезапускаем её
           {
             MonitorHelper.Monitor();
             if (!MonitorHelper.StopMonitor)
